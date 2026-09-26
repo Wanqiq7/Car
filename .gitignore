@@ -1,0 +1,8 @@
+build/**
+.history/**
+.cache/**
+.config.yaml
+CMakeFiles/**
+.workbuddy/**
+# 远程模块由 Modules/modules.yaml 登记、xrobot_init_mod 拉取，不入库
+Modules/BlinkLED/

@@ -1,0 +1,26 @@
+global_settings:
+  monitor_sleep_ms: 1000
+modules:
+# ---------------------------------------------------------------------------
+# BlinkLED 需要硬件容器中存在名为 led / LED / led1 / LED1 的 GPIO，但本工程的
+# Clock.ioc 目前没有分配任何 LED 引脚。保留该实例会让 XRobotMain 在构造期触发
+# REQUIRE 失败并进入 LibXR 致命错误处理，整机无法启动，因此暂时停用。
+# 补上 LED 引脚并在 app_main.cpp 中注册对应 GPIO 别名后，取消注释即可恢复。
+#
+#   已分配引脚：PA0(ADC1_IN0) PA9/PA10(USART1)
+#              PA13/PA14(SWD) PB6/PB7(I2C1) PD0/PD1(HSE)
+#   PA2/PA3 原为 USART2，已于 2026-09-26 移除：STM32F103 上 I2C1_TX/I2C1_RX 的 DMA
+#   请求硬连线到 DMA1_CH6/CH7，与 USART2_RX/TX 冲突；为给 MPU6050 的 I2C DMA 让路，
+#   USART2 及其 DMA 一并放弃（当前无任何模块使用该串口）。
+# ---------------------------------------------------------------------------
+# - id: BlinkLED_0
+#   name: BlinkLED
+#   constructor_args:
+#     blink_cycle: 250
+- id: MPU6050_0
+  name: MPU6050
+  constructor_args:
+    gyro_topic_name: mpu6050_gyro
+    accl_topic_name: mpu6050_accl
+    euler_topic_name: mpu6050_euler
+    sample_period_ms: 10
