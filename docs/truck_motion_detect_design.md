@@ -15,7 +15,7 @@
    - 怠速振动为**高频小幅**（发动机基频 >20 Hz）→ 被 f_c ≈ 3 Hz 一阶低通抑制，静止特征 σ_a 低；
    - 行驶时路面起伏 / 加减速为**低频大幅能量**（0.5~3 Hz）→ 落在低通通带内，σ_a 显著升高；
    - 匀速巡航平滑路面可能"能量塌陷" → 用**持续偏航/角速度**作第三路兜底证据。
-4. **资源预算**：Flash 估 +1.5~2.5 KB（当前余量 6 248 B = 9.53%，构建后实测确认）；RAM < 200 B（全递推、无环形缓冲）。
+4. **资源预算**：**实测 +4 144 B → 63 432 B / 64 KB（96.79%，余量 2 104 B）；RAM 4 416 B（21.56%）**（2026-09-26 构建实测，全递推、无环形缓冲）。
 5. **调参方法继承计步文 §4.2**：串口 CSV 采集 → PC 绘图量分布 → 阈值取分布间隔中点，**不盲调**。
 
 ---
@@ -245,11 +245,11 @@ class TruckMotion : public LibXR::Application {
 
 ### 6.4 资源预算
 
-| 项 | 估算 | 依据 |
+| 项 | 估算/实测 | 依据 |
 |---|---|---|
-| Flash | +1.5~2.5 KB → 预计 92~94% | 浮点特征链（小）、Topic 订阅/发布、RamFS 命令与格式串；`sqrtf` 已在镜像（euler 计算用 `std::asin/atan2`）；打印定标整数不拉入浮点格式化之外的新路径 |
-| RAM | < 200 B | 全标量递推状态；无环形缓冲（EMA 方案比 100 样本窗省 400 B）；回调块由 LibXR `new` 分配 |
-| 验证 | 构建后以链接器报数为准 | 超预算时的裁剪顺序：砍 `log` 命令 → 砍 `calib` 命令 → 参数只留编译期常量 |
+| Flash | **实测 +4 144 B → 63 432 B（96.79%，余量 2 104 B）** | 首次链接曾溢出（66 744 B，+7 456 B）：LibXR 编译期打印按"格式签名"实例化整套 Executor 模板，`%s`/`%u`/双 `%f` 各复制一套（1.5~2 KB/套）。收敛为**纯 `%d` 定标整数**（复用 `mpu6050 show` 既有实例）+ OnMonitor 静默计数后回落到 +4 144 B |
+| RAM | 实测 4 416 B（21.56%，+200 B） | 全标量递推状态；无环形缓冲（EMA 方案比 100 样本窗省 400 B）；回调块由 LibXR `new` 分配 |
+| 后续裁剪顺序（若再紧张） | 砍 `log` 命令 → 砍 `status` 的低价值字段 → 参数只留编译期常量 | 每条命令的参数格式会新增少量模板实例 |
 
 ---
 
@@ -298,11 +298,11 @@ class TruckMotion : public LibXR::Application {
 
 ## 9. 实施清单
 
-1. 新建 `Modules/TruckMotion/{TruckMotion.hpp, CMakeLists.txt}`；
-2. `User/xrobot.yaml` 追加 `TruckMotion_0`（`MPU6050_0` 之后）；
-3. `tools/Windows/build.ps1` 构建 → 确认 Flash 实际占用（预期 ≤ 94%）；
+1. ~~新建 `Modules/TruckMotion/{TruckMotion.hpp, CMakeLists.txt}`~~（✅ 2026-09-26，另含 README.md）；
+2. ~~`User/xrobot.yaml` 追加 `TruckMotion_0`（`MPU6050_0` 之后）~~（✅，生成代码已确认构造顺序正确）；
+3. ~~`tools/Windows/build.ps1` 构建 → 确认 Flash 实际占用~~（✅ **63 432 B / 96.79%，余量 2 104 B**；首次链接溢出的教训见 §6.4）；
 4. RamFS `truck log` + PC 脚本台架采集，定阈值初稿；
 5. 路测矩阵 + 反向验证（§8.2/§8.3），参数定稿；
-6. 补 `Modules/TruckMotion/README.md`，记录最终参数与路测数据。
+6. 补 `Modules/TruckMotion/README.md`（✅），记录最终参数与路测数据。
 
 > 实施约束提醒：新增文件仅 `Modules/TruckMotion/` 两个；除 `User/xrobot.yaml` 追加实例外，**不新增、不删除、不修改任何现有文件**（含 `Modules/MPU6050` 全部文件——其中 `inv_mpu.c/.h`、`MPU6050.c/.h` 为 GBK 编码，本方案不触碰）。

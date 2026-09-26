@@ -24,3 +24,13 @@ modules:
     accl_topic_name: mpu6050_accl
     euler_topic_name: mpu6050_euler
     sample_period_ms: 10
+# 货车行驶状态检测（启动/停止判别），设计文档见 docs/truck_motion_detect_design.md。
+# 无自有定时任务：特征递推挂在 MPU6050 的 100 Hz 发布回调内，
+# 因此本实例必须排在 MPU6050_0 之后（yaml 列表顺序 = 生成代码中的构造顺序）。
+- id: TruckMotion_0
+  name: TruckMotion
+  constructor_args:
+    accl_topic_name: mpu6050_accl
+    gyro_topic_name: mpu6050_gyro
+    output_topic_name: truck_motion
+    calib_ms: 10000
