@@ -36,9 +36,17 @@ mpu6050_gyro ─► ‖ω‖−零偏 ─► LPF ─► EMA均值 m_w ───�
 ## 调试
 
 - Ozone Watched Data：`TruckMotion::TruckMotion_data`（扁平镜像，约定同
-  `MPU6050::MPU6050_data`）；Program File 固定 `build/RelWithDebInfo/Clock.elf`。
-- 阈值定稿须以 `truck log` 实测数据为准（怠速 σ 分布上界 ×6 与绝对下限取大），
-  修改 `K_TH` / `TH_*_MIN` / `TH_*_MAX` 常量。
+  `MPU6050::MPU6050_data`），含特征（sigma_a/mean_w/base）、阈值读视图
+  （th_a/th_w）、状态与 `self` 实例指针；Program File 固定
+  `build/RelWithDebInfo/Clock.elf`。
+- **在线改阈值（免重烧）**：Ozone 中 halt → 展开 `self` → 编辑实例成员
+  `th_a_`/`th_w_`（m/s²、rad/s）→ resume，立即生效。注意镜像里的 th_a/th_w
+  只是读视图，改它们会被成员覆写。
+- 定量调参走 `truck log` CSV（Ozone 只能定性观察与点值编辑）：
+  阈值 = 怠速 σ 分布上界 ×6 与绝对下限取大，修改 `K_TH` / `TH_*_MIN` / `TH_*_MAX`
+  常量后重新编译定稿。
+- 反向验证：halt 下把 `th_a_` 改成 0.001（必现假 MOVING）或 5.0（恒 STOPPED），
+  验证阈值机制有效。
 
 ## 参数速查
 

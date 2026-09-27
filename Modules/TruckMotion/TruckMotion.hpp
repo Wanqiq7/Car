@@ -91,16 +91,22 @@ class TruckMotion : public LibXR::Application {
   static constexpr int K_SCALE_W = 10000;
 
   /* ── Ozone 调试镜像（约定同 MPU6050::MPU6050_data，扁平 struct）────────────
-     Watched Data 只填 `TruckMotion::TruckMotion_data`；`sample_count` 在 accl
-     回调入口自增，用于区分"任务未调度"与"特征全 0"。 */
+     Watched Data 只填 `TruckMotion::TruckMotion_data`：
+     - th_a/th_w 是成员的读视图（每样本同步）；**在线改阈值**不要改镜像里的
+       th_a/th_w（下一样本会被成员覆写），而是展开 `self` 指针直接改实例成员
+       `th_a_`/`th_w_`（Ozone: halt → 编辑 → resume，立即生效，免重烧）。
+     - `sample_count` 在 accl 回调入口自增，用于区分"任务未调度"与"特征全 0"。 */
   inline static struct {
     float sigma_a;          ///< 加速度能量特征（m/s²）。
     float mean_w;           ///< 角速度能量特征（rad/s）。
+    float th_a;             ///< 加速度阈值读视图（m/s²）。
+    float th_w;             ///< 角速度阈值读视图（rad/s）。
     float base;             ///< 当前重力基线（m/s²）。
     uint32_t yaw_ms;        ///< 偏航持续计时（ms）。
     uint32_t sample_count;  ///< 回调入口计数（按 mpu6050_accl 计）。
     uint8_t state;          ///< State 枚举值。
     uint8_t calibrated;     ///< 校准完成标志。
+    TruckMotion* self;      ///< 实例指针：Ozone 展开它可在线编辑 th_a_/th_w_ 等成员。
   } TruckMotion_data{};
 
   /**
@@ -121,6 +127,7 @@ class TruckMotion : public LibXR::Application {
         cb_accl_(LibXR::Topic::Callback::Create(OnAccl, this)),
         cb_gyro_(LibXR::Topic::Callback::Create(OnGyro, this)),
         cmd_file_(LibXR::RamFS::CreateFile("truck", CommandFunc, this)) {
+    TruckMotion_data.self = this;
     app.Register(*this);
     hw.template FindOrExit<LibXR::RamFS>({"ramfs"})->Add(cmd_file_);
 
@@ -269,6 +276,8 @@ class TruckMotion : public LibXR::Application {
     /* 调试镜像同步。 */
     TruckMotion_data.sigma_a = self->sigma_a_;
     TruckMotion_data.mean_w = self->m_w_;
+    TruckMotion_data.th_a = self->th_a_;
+    TruckMotion_data.th_w = self->th_w_;
     TruckMotion_data.base = self->base_;
     TruckMotion_data.yaw_ms = self->yaw_ms_;
     TruckMotion_data.state = static_cast<uint8_t>(self->state_);
@@ -348,6 +357,8 @@ class TruckMotion : public LibXR::Application {
     topic_out_.Publish(out_);
     TruckMotion_data.state = out_.state;
     TruckMotion_data.calibrated = out_.calibrated;
+    TruckMotion_data.th_a = th_a_;
+    TruckMotion_data.th_w = th_w_;
   }
 
   static float Clamp(float v, float lo, float hi) {
