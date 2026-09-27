@@ -1,0 +1,32 @@
+# J-Link Commander script: clear Cortex-M debug-domain residue (FPB/DWT/DEMCR).
+#
+# WHY: FPB comparators and DEMCR vector-catch bits live in the debug domain and
+# SURVIVE system resets and re-flashing. A stale breakpoint (e.g. Ozone's
+# "run to main") makes every standalone boot hit an unserviced debug event at
+# that address, which escalates to HardFault - looking exactly like an app bug.
+#
+# Symptom fingerprint: boot reaches main (or the stale breakpoint address),
+# CFSR shows BFSR/UFSR bits or 0, HFSR.FORCED=1, application .bss cleared but
+# constructors incomplete, stack may contain garbage return addresses.
+#
+# USAGE: "C:\Program Files\SEGGER\JLink\JLink.exe" -device STM32F103C8 -if SWD
+#        -speed 4000 -NoGui 1 -CommandFile tools\clean_debug_residue.jlink
+si 1
+speed 4000
+connect
+halt
+w4 0xE0002008, 0
+w4 0xE000200C, 0
+w4 0xE0002010, 0
+w4 0xE0002014, 0
+w4 0xE0002018, 0
+w4 0xE000201C, 0
+w4 0xE0002000, 2
+w4 0xE0001028, 0
+w4 0xE0001038, 0
+w4 0xE0001048, 0
+w4 0xE0001058, 0
+w4 0xE000EDFC, 0
+r
+go
+qc

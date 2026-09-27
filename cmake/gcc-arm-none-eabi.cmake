@@ -44,8 +44,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-Os -g0")
 # RelWithDebInfo on this 64 KB part: CMake's default (-O2 -g -DNDEBUG) does not link here,
 # so use -Os -g3 to keep both the size and the full debug info. -DNDEBUG is intentionally
 # left out so LibXR assertions stay active.
-set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Os -g3")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Os -g3")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Os -g3 -flto")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Os -g3 -flto")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fno-rtti -fno-exceptions -fno-threadsafe-statics")
 
@@ -54,4 +54,5 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T \"${CMAKE_SOURCE_DIR}/S
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --specs=nano.specs")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map=${CMAKE_PROJECT_NAME}.map -Wl,--gc-sections")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--print-memory-usage")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
 set(TOOLCHAIN_LINK_LIBRARIES "m")
